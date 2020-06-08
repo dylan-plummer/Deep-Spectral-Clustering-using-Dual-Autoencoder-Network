@@ -98,6 +98,7 @@ class LearningHandler(Callback):
         patience:   patience of the learning rate scheduler
         '''
         super(LearningHandler, self).__init__()
+        print('Learning Rate params:', lr, drop, lr_tensor, patience)
         self.lr = lr
         self.drop = drop
         self.lr_tensor = lr_tensor
@@ -265,7 +266,7 @@ def get_y_preds(cluster_assignments, y_true, n_clusters):
     returns:    a tuple containing the accuracy and confusion matrix,
                 in that order
     '''
-    confusion_matrix = sklearn.metrics.confusion_matrix(y_true, cluster_assignments, labels=None)
+    confusion_matrix = sklearn.metrics.confusion_matrix(y_true, cluster_assignments, labels=None, normalize='true')
     # compute accuracy based on optimal 1:1 assignment of clusters to labels
     cost_matrix = calculate_cost_matrix(confusion_matrix, n_clusters)
     indices = Munkres().compute(cost_matrix)

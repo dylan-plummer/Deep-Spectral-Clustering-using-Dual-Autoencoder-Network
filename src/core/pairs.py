@@ -17,7 +17,7 @@ from keras.models import Sequential, Model
 from keras.layers import Dense, Dropout, Input, Lambda, Flatten
 from keras.optimizers import RMSprop
 from keras import backend as K
-from sklearn.neighbors import NearestNeighbors, LSHForest
+from sklearn.neighbors import NearestNeighbors
 from keras.layers import Conv2D, MaxPooling2D
 from keras.callbacks import LearningRateScheduler
 
@@ -178,7 +178,7 @@ def create_pairs_from_unlabeled_data(x1, x2=None, y=None, p=None, k=5, tot_pairs
             # if we have shuffled the array with p, we must convert our neighbors
             # matrix to correspond to the shuffled indices
             import pyximport; pyximport.install()
-            from core.convert_idxs import convert_idxs
+            from convert_idxs import convert_idxs
             Idx = convert_idxs(kn_idxs_untouched.astype(np.int32, copy=False), p.astype(np.int32, copy=False), k, n)
             print('converted all indices')
 

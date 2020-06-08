@@ -14,11 +14,10 @@ class ConvAE:
         self.P = tf.eye(tf.shape(self.x)[0])
         h = x
 
-
-
         filters = params['filters']
         latent_dim = params['latent_dim']
         num_classes = params['n_clusters']
+        print('N_Clusters:', num_classes)
         for i in range(1):
             filters *= 2
 
@@ -35,7 +34,7 @@ class ConvAE:
 
             h = LeakyReLU(0.2)(h)
 
-        for i in range(1):
+        for i in range(2):
             filters *= 2
             h = Conv2D(filters=filters,
                     kernel_size=3,
@@ -62,7 +61,7 @@ class ConvAE:
         h = Dense(np.prod(h_shape))(h)
         h = Reshape(h_shape)(h)
 
-        for i in range(2):
+        for i in range(3):
             h = Conv2DTranspose(filters=filters,
                                 kernel_size=3,
                                 strides=1,
@@ -77,7 +76,7 @@ class ConvAE:
 
         x_recon = Conv2DTranspose(filters=1,
                                 kernel_size=3,
-                                activation='sigmoid',
+                                activation='relu',
                                 padding='same')(h)
 
         self.decoder = Model(z, x_recon)
@@ -88,18 +87,20 @@ class ConvAE:
         W = costs.knn_affinity(z_mean, params['n_nbrs'], scale=2.62, scale_nbr=params['scale_nbr'])
         W = W - self.P
 
-        self.Dy = tf.placeholder(tf.float32, [None, 10], name='Dy')
+        self.Dy = tf.placeholder(tf.float32, [None, num_classes], name='Dy')
 
      
         z = Input(shape=(latent_dim,))
         y = Dense(1024, activation='relu')(z)
-        y = Dense(1024, activation='relu')(y)
-        y = Dense(512, activation='relu')(y)
+        #y = Dense(1024, activation='relu')(y)
+        #y = Dense(512, activation='relu')(y)
         y = Dense(num_classes, activation='softmax')(y)
 
         self.classfier = Model(z, y)
 
         y = self.classfier(z_mean)
+
+        print(self.classfier.summary())
 
 
         layers = [
@@ -149,6 +150,8 @@ class ConvAE:
         z_prior_mean = gaussian(z)
         self.vae = Model(x, [x_recon1, z_prior_mean,y])
 
+        print(self.vae.summary())
+
         z_mean = K.expand_dims(z_mean, 1)
         z_log_var = K.expand_dims(z_log_var, 1)
         lamb = 5
@@ -159,8 +162,8 @@ class ConvAE:
         cat_loss = K.mean(y * K.log(y + K.epsilon()), 0)
         loss_vae = lamb * K.sum(xent_loss) + lamb * K.sum(xent1_loss)+1.5*K.sum(kl_loss)+1*K.sum(cat_loss)+0.001*K.sum(global_info_loss)
         self.loss=(loss_SPNet+loss_vae)
-        self.learning_rate = tf.Variable(0., name='spectral_net_learning_rate')
-        self.train_step1 = tf.train.AdamOptimizer().minimize(self.loss,var_list=self.vae.weights)
+        self.learning_rate = tf.Variable(1e-3, name='spectral_net_learning_rate')
+        self.train_step1 = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.loss,var_list=self.vae.weights)
         K.get_session().run(tf.variables_initializer(self.vae.trainable_weights))
 
     def train_vae(self, x_train_unlabeled,x_dy,batch_size):
@@ -173,7 +176,7 @@ class ConvAE:
                 inputs=self.x,
                 x_dy=x_dy,
                 batch_sizes=batch_size,
-                batches_per_epoch=10)[0]
+                batches_per_epoch=100)[0]
 
 
         return losses
@@ -189,17 +192,18 @@ class ConvAE:
 
             # feed corresponding input for each input_type
 
-            batch_ids = np.random.choice(len(x_unlabeled), size=batch_sizes, replace=False)
+            batch_ids = np.random.choice(np.arange(len(x_unlabeled)), size=batch_sizes, replace=False)
+            #print(x_dy[batch_ids])
             feed_dict[inputs] = x_unlabeled[batch_ids]
-            feed_dict[self.Dy]=x_dy[batch_ids]
+            feed_dict[self.Dy] = x_dy[batch_ids]
 
 
-                        # feed_dict[P]=P[batch_ids]
+            #feed_dict[self.P] = self.P[batch_ids]
 
             all_vars = return_var + updates
             return_vars_ += np.asarray(K.get_session().run(all_vars, feed_dict=feed_dict)[:len(return_var)])
 
-        return return_vars_
+        return return_vars_ / batches_per_epoch
 
 class Gaussian(Layer):
     def __init__(self, num_classes, **kwargs):
@@ -213,6 +217,6 @@ class Gaussian(Layer):
     def call(self, inputs):
         z = inputs # z.shape=(batch_size, latent_dim)
         z = K.expand_dims(z, 1)
-        return z * 0 + K.expand_dims(self.mean, 0)
+        return z * 1 + K.expand_dims(self.mean, 0)
     def compute_output_shape(self, input_shape):
         return (None, self.num_classes, input_shape[-1])

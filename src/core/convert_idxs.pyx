@@ -4,7 +4,7 @@ cimport numpy as np
 DTYPE = np.int32
 ctypedef np.int32_t DTYPE_t
 
-# @cython.boundscheck(False) 
+# @cython.boundscheck(False)
 # @cython.wraparound(False)
 def convert_idxs(np.ndarray[DTYPE_t, ndim=2] orig_kn_idxs, np.ndarray[DTYPE_t] orig_p, int k, int n):
     print("in convert_idxs!")
@@ -52,4 +52,3 @@ def convert_idxs(np.ndarray[DTYPE_t, ndim=2] orig_kn_idxs, np.ndarray[DTYPE_t] o
             print("converted {}/{} indices".format(i, n))
 
     return new_kn_idxs[:n]
-
