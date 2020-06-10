@@ -52,6 +52,8 @@ def get_pfc(data_generator, test_split=1):
     for cell_i in range(n_train_cells):
         #print(cell_i)
         cell, label = data_generator.__getitem__(cell_i)
+        if cell is None:  # cell had no reads
+            continue
         x_train.append(cell[0])
         y_train.append(label)
     x_train = np.array(x_train)

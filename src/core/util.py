@@ -266,7 +266,7 @@ def get_y_preds(cluster_assignments, y_true, n_clusters):
     returns:    a tuple containing the accuracy and confusion matrix,
                 in that order
     '''
-    confusion_matrix = sklearn.metrics.confusion_matrix(y_true, cluster_assignments, labels=None, normalize='true')
+    confusion_matrix = sklearn.metrics.confusion_matrix(y_true, cluster_assignments, labels=None)
     # compute accuracy based on optimal 1:1 assignment of clusters to labels
     cost_matrix = calculate_cost_matrix(confusion_matrix, n_clusters)
     indices = Munkres().compute(cost_matrix)
@@ -303,7 +303,7 @@ def spectral_clustering(x, scale, n_nbrs=None, affinity='full', W=None):
     returns:    the eigenvectors of the spectral clustering algorithm
     '''
     if affinity == 'full':
-        W =  K.eval(cf.full_affinity(K.variable(x), scale))
+        W = K.eval(cf.full_affinity(K.variable(x), scale))
     elif affinity == 'knn':
         if n_nbrs is None:
             raise ValueError('n_nbrs must be provided if affinity = knn!')
