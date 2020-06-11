@@ -19,11 +19,11 @@ class ConvAE:
         num_classes = params['n_clusters']
         print('N_Clusters:', num_classes)
 
-        for i in range(5):
+        for i in range(6):
             filters *= 2
             h = Conv2D(filters=filters,
                        kernel_size=3,
-                       strides=(1, 2),
+                       strides=(1 if i > 2 else 2, 2),
                        padding='same')(h)
             h = LeakyReLU(0.2)(h)
             h = Conv2D(filters=filters,
@@ -45,7 +45,7 @@ class ConvAE:
         h = Dense(np.prod(h_shape))(h)
         h = Reshape(h_shape)(h)
 
-        for i in range(5):
+        for i in range(6):
             h = Conv2DTranspose(filters=filters,
                                 kernel_size=3,
                                 strides=1,
@@ -53,7 +53,7 @@ class ConvAE:
             h = LeakyReLU(0.2)(h)
             h = Conv2DTranspose(filters=filters,
                                 kernel_size=3,
-                                strides=(1, 2),
+                                strides=(2 if i > 2 else 1, 2),
                                 padding='same')(h)
             h = LeakyReLU(0.2)(h)
             filters //= 2
@@ -140,7 +140,7 @@ class ConvAE:
         loss_vae = lamb * K.sum(xent_loss) + lamb * K.sum(xent1_loss) + 1.5 * K.sum(kl_loss) + 1 * K.sum(
             cat_loss) + 0.001 * K.sum(global_info_loss)
         self.loss = (loss_SPNet + loss_vae)
-        self.learning_rate = tf.Variable(1e-3, name='spectral_net_learning_rate')
+        self.learning_rate = tf.Variable(5e-4, name='spectral_net_learning_rate')
         self.train_step1 = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.loss,
                                                                                              var_list=self.vae.weights)
         K.get_session().run(tf.variables_initializer(self.vae.trainable_weights))

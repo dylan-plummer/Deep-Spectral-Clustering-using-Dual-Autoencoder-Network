@@ -7,12 +7,14 @@ import tensorflow as tf
 import numpy as np
 from keras.regularizers import l2
 
-def orthonorm_op(x, epsilon=1e-7):
+def orthonorm_op(x, epsilon=1e-5):
     '''
     Computes a matrix that orthogonalizes the input matrix x
 
     x:      an n x d input matrix
     eps:    epsilon to prevent nonzero values in the diagonal entries of x
+            If you get a Cholesky decomp error try bumping up the epsilon to make the matrix PSD
+                -Dylan
 
     returns:    a d x d matrix, ortho_weights, which orthogonalizes x by
                 right multiplication
