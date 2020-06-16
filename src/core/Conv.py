@@ -41,7 +41,7 @@ class ConvAE:
         else:
             layer_units = [3200, 1600, 800, 400]
             for n in layer_units:
-                h = Dense(n, activation='sigmoid')(h)
+                h = Dense(n, activation='relu')(h)
             h_shape = K.int_shape(h)[1:]
 
         z_mean = Dense(latent_dim)(h)
@@ -152,7 +152,7 @@ class ConvAE:
         loss_vae = lamb * K.sum(xent_loss) + lamb * K.sum(xent1_loss) + 1.5 * K.sum(kl_loss) + 1 * K.sum(
             cat_loss) + 0.001 * K.sum(global_info_loss)
         self.loss = (loss_SPNet + loss_vae)
-        self.learning_rate = tf.Variable(5e-4, name='spectral_net_learning_rate')
+        self.learning_rate = tf.Variable(2e-4, name='spectral_net_learning_rate')
         self.train_step1 = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.loss,
                                                                                              var_list=self.vae.weights)
         K.get_session().run(tf.variables_initializer(self.vae.trainable_weights))
@@ -167,7 +167,7 @@ class ConvAE:
             inputs=self.x,
             x_dy=x_dy,
             batch_sizes=batch_size,
-            batches_per_epoch=1000)[0]
+            batches_per_epoch=100)[0]
 
         return losses
 

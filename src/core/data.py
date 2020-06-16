@@ -75,16 +75,6 @@ def get_atac(data_generator, test_split=1, low=0, high=0.9):
 
         x_test = np.array(x_test)
         y_test = np.array(y_test)
-
-
-    try:
-        with open('filtered_cell_vectors.sav', 'wb') as f:
-            joblib.dump(data_generator.filtered_cell_vectors, f)  # and save the sparse matrix dict for use later
-    except MemoryError:
-        print('Not enough memory to save')
-    except AttributeError:  # atac-seq data has no sparse matrix dict
-        pass
-
     return x_train, x_test, y_train, y_test
 
 def get_pfc(data_generator, test_split=1):
