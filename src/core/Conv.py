@@ -14,26 +14,35 @@ class ConvAE:
         self.P = tf.eye(tf.shape(self.x)[0])
         h = x
 
+        input_dim = params['input_shape'][0]
         filters = params['filters']
         latent_dim = params['latent_dim']
         num_classes = params['n_clusters']
+        depth = params['depth']
+        conv_net = params['cnn']
         print('N_Clusters:', num_classes)
+        if conv_net:
+            for i in range(depth):
+                filters = int(filters * 1.5)
+                h = Conv2D(filters=filters,
+                           kernel_size=3,
+                           strides=(1, 2),
+                           #strides=(1 if i > 2 else 2, 2),
+                           padding='same')(h)
+                h = LeakyReLU(0.2)(h)
+                h = Conv2D(filters=filters,
+                           kernel_size=3,
+                           strides=1,
+                           padding='same')(h)
+                h = LeakyReLU(0.2)(h)
 
-        for i in range(6):
-            filters *= 2
-            h = Conv2D(filters=filters,
-                       kernel_size=3,
-                       strides=(1 if i > 2 else 2, 2),
-                       padding='same')(h)
-            h = LeakyReLU(0.2)(h)
-            h = Conv2D(filters=filters,
-                       kernel_size=3,
-                       strides=1,
-                       padding='same')(h)
-            h = LeakyReLU(0.2)(h)
-
-        h_shape = K.int_shape(h)[1:]
-        h = Flatten()(h)
+            h_shape = K.int_shape(h)[1:]
+            h = Flatten()(h)
+        else:
+            layer_units = [3200, 1600, 800, 400]
+            for n in layer_units:
+                h = Dense(n, activation='sigmoid')(h)
+            h_shape = K.int_shape(h)[1:]
 
         z_mean = Dense(latent_dim)(h)
         z_log_var = Dense(latent_dim)(h)
@@ -44,24 +53,27 @@ class ConvAE:
         h = z
         h = Dense(np.prod(h_shape))(h)
         h = Reshape(h_shape)(h)
+        if conv_net:
+            for i in range(depth):
+                h = Conv2DTranspose(filters=filters,
+                                    kernel_size=3,
+                                    strides=1,
+                                    padding='same')(h)
+                h = LeakyReLU(0.2)(h)
+                h = Conv2DTranspose(filters=filters,
+                                    kernel_size=3,
+                                    strides=(1, 2),
+                                    #strides=(2 if i > 2 else 1, 2),
+                                    padding='same')(h)
+                h = LeakyReLU(0.2)(h)
+                filters = int(filters / 1.5)
 
-        for i in range(6):
-            h = Conv2DTranspose(filters=filters,
-                                kernel_size=3,
-                                strides=1,
-                                padding='same')(h)
-            h = LeakyReLU(0.2)(h)
-            h = Conv2DTranspose(filters=filters,
-                                kernel_size=3,
-                                strides=(2 if i > 2 else 1, 2),
-                                padding='same')(h)
-            h = LeakyReLU(0.2)(h)
-            filters //= 2
-
-        x_recon = Conv2DTranspose(filters=1,
-                                  kernel_size=3,
-                                  #activation='relu',
-                                  padding='same')(h)
+            x_recon = Conv2DTranspose(filters=1,
+                                      kernel_size=3,
+                                      #activation='relu',
+                                      padding='same')(h)
+        else:
+            x_recon = Dense(input_dim, activation=None)(h)
 
         self.decoder = Model(z, x_recon)
 
@@ -74,8 +86,8 @@ class ConvAE:
 
         z = Input(shape=(latent_dim,))
         y = Dense(1024, activation='relu')(z)
-        # y = Dense(1024, activation='relu')(y)
-        # y = Dense(512, activation='relu')(y)
+        y = Dense(1024, activation='relu')(y)
+        y = Dense(512, activation='relu')(y)
         y = Dense(num_classes, activation='softmax')(y)
 
         self.classfier = Model(z, y)
@@ -155,7 +167,7 @@ class ConvAE:
             inputs=self.x,
             x_dy=x_dy,
             batch_sizes=batch_size,
-            batches_per_epoch=100)[0]
+            batches_per_epoch=1000)[0]
 
         return losses
 

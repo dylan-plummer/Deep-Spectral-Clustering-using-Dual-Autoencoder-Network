@@ -1,5 +1,6 @@
 import joblib
 import numpy as np
+from tqdm import tqdm
 from keras.datasets import mnist
 from rotated_cell_data_generator import DataGenerator
 
@@ -38,18 +39,59 @@ def load_data(params, data_generator=None):
     elif params['dset'] == 'pfc':
         assert data_generator is not None
         x_train, x_test, y_train, y_test = get_pfc(data_generator)
-
+    elif params['dset'] == 'atac':
+        x_train, x_test, y_train, y_test = get_atac(data_generator)
     else:
         raise ValueError('Dataset provided ({}) is invalid!'.format(params['dset']))
 
     return x_train, x_test, y_train, y_test
 
 
+def get_atac(data_generator, test_split=1, low=0, high=0.9):
+    x_train = []
+    y_train = []
+    n_train_cells = int(data_generator.n_cells * test_split)
+    for cell_i in tqdm(range(n_train_cells)):
+        # print(cell_i)
+        cell, label = data_generator.__getitem__(cell_i)
+        if cell is None:  # cell had no reads
+            continue
+        x_train.append(cell[0])
+        y_train.append(label)
+    x_train = np.array(x_train)
+    y_train = np.array(y_train)
+
+    if test_split == 1:
+        x_test = x_train
+        y_test = y_train
+    else:
+        x_test = []
+        y_test = []
+        for cell_i in range(n_train_cells, data_generator.n_cells):
+            # print(cell_i)
+            cell, label = data_generator.__getitem__(cell_i)
+            x_test.append(cell[0])
+            y_test.append(label)
+
+        x_test = np.array(x_test)
+        y_test = np.array(y_test)
+
+
+    try:
+        with open('filtered_cell_vectors.sav', 'wb') as f:
+            joblib.dump(data_generator.filtered_cell_vectors, f)  # and save the sparse matrix dict for use later
+    except MemoryError:
+        print('Not enough memory to save')
+    except AttributeError:  # atac-seq data has no sparse matrix dict
+        pass
+
+    return x_train, x_test, y_train, y_test
+
 def get_pfc(data_generator, test_split=1):
     x_train = []
     y_train = []
     n_train_cells = int(data_generator.n_cells * test_split)
-    for cell_i in range(n_train_cells):
+    for cell_i in tqdm(range(n_train_cells)):
         #print(cell_i)
         cell, label = data_generator.__getitem__(cell_i)
         if cell is None:  # cell had no reads
@@ -79,6 +121,8 @@ def get_pfc(data_generator, test_split=1):
             joblib.dump(data_generator.sparse_matrices, f)  # and save the sparse matrix dict for use later
     except MemoryError:
         print('Not enough memory to save')
+    except AttributeError:  # atac-seq data has no sparse matrix dict
+        pass
 
     return x_train, x_test, y_train, y_test
 

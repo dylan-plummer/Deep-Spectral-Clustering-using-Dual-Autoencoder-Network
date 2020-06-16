@@ -7,7 +7,7 @@ import tensorflow as tf
 import numpy as np
 from keras.regularizers import l2
 
-def orthonorm_op(x, epsilon=1e-5):
+def orthonorm_op(x, epsilon=1e-4):
     '''
     Computes a matrix that orthogonalizes the input matrix x
 
@@ -19,7 +19,10 @@ def orthonorm_op(x, epsilon=1e-5):
     returns:    a d x d matrix, ortho_weights, which orthogonalizes x by
                 right multiplication
     '''
+    x = tf.cast(x, tf.float64)
     x_2 = K.dot(K.transpose(x), x)
+    x_2 = tf.cast(x_2, tf.float32)
+    x = tf.cast(x, tf.float32)
     x_2 += K.eye(K.int_shape(x)[1])*epsilon
     L = tf.cholesky(x_2)
     ortho_weights = tf.transpose(tf.matrix_inverse(L)) * tf.sqrt(tf.cast(tf.shape(x)[0], dtype=K.floatx()))
